@@ -12,9 +12,12 @@ local descriptions={} --holds descriptions of peripherals
 local lastPeripherals={} --holds old peripherals loaded from file
 local redstoneValues={} --holds the redstone signal data
 local itemIDs={} --holds universal itemIDs for peripherals
+local methodsHash={}
 
 --CONSTANTS
-local directions={"left","right","top","bottom","front","back"}
+local directions={"left","right","top","bottom","front","back"} --holds the directions
+local methodsToSend={["getEnergyStored"]={"'unknown'"},["getMaxEnergyStored"]={"'unknown'"}}
+--holds allowed functions
 
 --FUNCTIONS
 
@@ -167,8 +170,76 @@ function initializeComputer()
 end
 
 function sendData()
-    for key, value in pairs(peripherals) do
+    logger:debug("Sending Data")
+    data={}
+    local postData="computer_uuid="..computerInfo["uuid"]
 
+    for key, value in pairs(peripherals) do
+        local p=getMethodsHash(key)
+        p["peripheral_type"]=value
+        p["description"]=descriptions[key]
+        for k,v in pairs(p) do
+
+            postData=postData.."&"..key.."["..k.."]".."="..v
+        end
+        logger:debug("Post Data: "..postData)
+    end
+
+    local remoteData=http.post("http://127.0.0.1:3000/players?"..postData)
+end
+
+function parseTable(t,side)            --DOESN'T WORK YET
+    local parsed=""
+    local k,v
+    for k,v in pairs(t) do
+        if type(v)=="table" then
+            parseTable(v)
+        end
+        parsed=parsed.."&"..side.."["..k.."]".."="..v
+    end
+    return parsed
+end
+
+function getMethodsHash(side)
+    logger:debug("Getting Methods Hash for "..side)
+    methodsHash={}
+    local p=peripheral.wrap(side)
+    local methods=p.getAdvancedMethodsData()
+    for key,value in pairs(methods) do
+        if methodsToSend[key]~=nil then
+            local commandString="return peripheral.wrap('"..side.."')."..createMethodString(key)
+            logger:debug("Trying to execute: "..commandString)
+            methodsHash[key]=loadstring(commandString)()
+            logger:debug("Success!")
+        end
+    end
+--    logger:debug("getMethodsHash returned: ")
+--    printTable(methodsHash)
+    return methodsHash
+end
+
+function createMethodString(key)
+    logger:debug("Creating Method String for "..key)
+    local methodString=key.."("
+    local first=true
+    for k,v in pairs(methodsToSend[key]) do
+        if first==false then
+            methodString=methodString..","
+        end
+        methodString=methodString..v
+        first=false
+    end
+    methodString=methodString..")"
+    logger:debug("createMethodString returned: "..methodString)
+    return methodString
+end
+
+function initializeDescriptions()
+    logger:debug("Initializing Descriptions")
+    descriptions=loadSettings("bdDescriptions")
+    if descriptions==nil then
+       logger:warn("No description information found - could be first run")
+       descriptions={}
     end
 end
 
@@ -338,14 +409,6 @@ function mapper() --this function allows the mapping of new itemIDs
     end
 end
 
-function showPower()
-
-end
-
-function showFluids()
-
-end
-
 --INIT
 loadAPIs()
 --loadIDs()
@@ -355,9 +418,10 @@ logger=logging.new{func = function(self, level, message) centerPrint(level..": "
 logger:debug("--------BaseDisplay Started------")
 initializeComputer()
 identifyPeripherals()
+initializeDescriptions()
 initializeRedstone()
 logger:debug("--------Initialization Complete------")
-
+sendData()
 --listHumanMethods("top")
 --toggleRedstone()
 --local remoteData=http.post("http://127.0.0.1:3000/players?name=psyestorm")

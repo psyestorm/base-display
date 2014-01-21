@@ -11,34 +11,36 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20140109151542) do
+ActiveRecord::Schema.define(:version => 20140121184024) do
 
   create_table "computers", :force => true do |t|
     t.string   "name"
-    t.string   "computer_id"
-    t.string   "token"
-    t.integer  "player_id"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.string   "computer_uuid"
+    t.string   "shared_secret"
+    t.datetime "created_at",    :null => false
+    t.datetime "updated_at",    :null => false
   end
 
-  add_index "computers", ["player_id"], :name => "index_computers_on_player_id"
-
   create_table "peripherals", :force => true do |t|
-    t.string   "name"
+    t.string   "description"
+    t.string   "peripheral_type"
+    t.string   "side"
     t.integer  "computer_id"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.datetime "created_at",      :null => false
+    t.datetime "updated_at",      :null => false
   end
 
   add_index "peripherals", ["computer_id"], :name => "index_peripherals_on_computer_id"
 
-  create_table "players", :force => true do |t|
-    t.string   "name"
-    t.string   "salt"
-    t.string   "token"
-    t.datetime "created_at", :null => false
-    t.datetime "updated_at", :null => false
+  create_table "settings", :force => true do |t|
+    t.string   "var",                       :null => false
+    t.text     "value"
+    t.integer  "target_id"
+    t.string   "target_type", :limit => 30
+    t.datetime "created_at",                :null => false
+    t.datetime "updated_at",                :null => false
   end
+
+  add_index "settings", ["target_type", "target_id", "var"], :name => "index_settings_on_target_type_and_target_id_and_var", :unique => true
 
 end

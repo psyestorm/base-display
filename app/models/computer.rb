@@ -1,5 +1,4 @@
 class Computer < ActiveRecord::Base
-  belongs_to :player
   has_many :peripherals
-  attr_accessible :name, :computer_id
+  attr_accessible :name, :computer_uuid, :shared_secret
 end

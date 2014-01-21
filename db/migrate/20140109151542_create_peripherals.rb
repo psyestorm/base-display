@@ -1,7 +1,7 @@
 class CreatePeripherals < ActiveRecord::Migration
   def change
     create_table :peripherals do |t|
-      t.string :name
+      t.string :description
       t.string :peripheral_type
       t.string :side
       t.references :computer

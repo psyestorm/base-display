@@ -3,10 +3,7 @@ class PlayersController < ApplicationController
   end
 
   def create
-    player=Player.new
-    player.name=params[:name]
-    player.save
-    @player=player
+    @params=params
   end
 
   def update
