@@ -12,12 +12,13 @@ local descriptions={} --holds descriptions of peripherals
 local lastPeripherals={} --holds old peripherals loaded from file
 local redstoneValues={} --holds the redstone signal data
 local itemIDs={} --holds universal itemIDs for peripherals
-local methodsHash={}
+local methodsHash={} --holds methodsHash data
 
 --CONSTANTS
 local directions={"left","right","top","bottom","front","back"} --holds the directions
-local methodsToSend={["getEnergyStored"]={"'unknown'"},["getMaxEnergyStored"]={"'unknown'"}}
+local methodsToSend={["getEnergyStored"]={"'unknown'"},["getMaxEnergyStored"]={"'unknown'"},["getTankInfo"]={"'unknown'"}}
 --holds allowed functions
+local httpSafe={[" "]="%%20"} --holds http conversion characters
 
 --FUNCTIONS
 
@@ -178,26 +179,36 @@ function sendData()
         local p=getMethodsHash(key)
         p["peripheral_type"]=value
         p["description"]=descriptions[key]
-        for k,v in pairs(p) do
-
-            postData=postData.."&"..key.."["..k.."]".."="..v
-        end
+        logger:debug("about to call parsetable with "..textutils.serialize(p))
+        postData=postData..parseTable(p,"&"..key)
         logger:debug("Post Data: "..postData)
+        data[key]=p
     end
-
-    local remoteData=http.post("http://127.0.0.1:3000/players?"..postData)
+    local remoteData=http.post("http://127.0.0.1:3000/computers?"..makeHTTPSafe(postData))
 end
 
-function parseTable(t,side)            --DOESN'T WORK YET
-    local parsed=""
-    local k,v
-    for k,v in pairs(t) do
-        if type(v)=="table" then
-            parseTable(v)
+function parseTable(t,carryString)
+    logger:debug("in parseTable with t: "..textutils.serialize(t).." and carrystring: "..carryString)
+    local returnString=""
+    for key,value in pairs(t) do
+        if type(value)=="string" or type(value)=="number" then
+            returnString=returnString..carryString.."["..key.."]".."="..value
+        elseif type(value)=="table" then
+            returnString=returnString..parseTable(value,carryString.."["..key.."]")
+        else
+            logger:fatal("parseTable got a non-string, non-table, non-number and didn't know what to do with it - Got "..type(value).." - "..tostring(value))
         end
-        parsed=parsed.."&"..side.."["..k.."]".."="..v
     end
-    return parsed
+    logger:debug("parseTable is returning: "..returnString)
+    return returnString
+end
+
+
+function makeHTTPSafe(url)
+    for key,value in pairs(httpSafe) do
+        url=string.gsub(url,key,value)
+    end
+    return url
 end
 
 function getMethodsHash(side)
@@ -412,7 +423,11 @@ end
 --INIT
 loadAPIs()
 --loadIDs()
-logger=logging.new{func = function(self, level, message) centerPrint(level..": "..message) end, file = "baseDisplay.log", format = "%date %time Usage: %level %message", level=logging.DEBUG}
+
+
+logger=logging.new{func = function(self, level, message) centerPrint(level..": "..message) end, file = "bdLog.log", format = "%date %time Usage: %level %message", level=logging.DEBUG}
+--todo fix logged being locked
+
 
 --MAIN
 logger:debug("--------BaseDisplay Started------")
@@ -424,6 +439,5 @@ logger:debug("--------Initialization Complete------")
 sendData()
 --listHumanMethods("top")
 --toggleRedstone()
---local remoteData=http.post("http://127.0.0.1:3000/players?name=psyestorm")
 --local computer=textutils.unserialize(remoteData.readLine())
 
