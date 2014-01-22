@@ -332,6 +332,13 @@ function printTable(t)
     end
 end
 
+function showDisplay(display)
+    logger:debug("Showing display "..display)
+    local response=http.get("http://localhost:3000/displays/"..display).readAll()
+    logger:debug("response: "..response)
+    loadstring(response)()
+end
+
 function showWarning(message)
     local textScale=1.5
     local hMargin=10
@@ -437,6 +444,11 @@ initializeDescriptions()
 initializeRedstone()
 logger:debug("--------Initialization Complete------")
 sendData()
+
+while true do
+    showDisplay("tanks")
+    sleep(10)
+end
 --listHumanMethods("top")
 --toggleRedstone()
 --local computer=textutils.unserialize(remoteData.readLine())

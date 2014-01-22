@@ -1,0 +1,9 @@
+local a=peripheral.wrap("top")
+a.clear()
+-offset=10
+-spacing=10
+-@tanks.each_with_index do |tank, index|
+  ="a.addBox(5,#{spacing+index*offset},50,10,0,1)"
+  ="a.addLiquid(5,#{spacing+index*offset},#{(tank.settings["getTankInfo"]["1"]["amount"].to_f/tank.settings["getTankInfo"]["1"]["capacity"].to_f)*50},10,'#{tank.settings["getTankInfo"]["1"]["name"]}')"
+  ="a.addText(5,#{spacing+index*offset},'#{tank.settings["getTankInfo"]["1"]["name"]}',0)"
+

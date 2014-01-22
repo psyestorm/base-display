@@ -1,4 +1,6 @@
 BaseDisplay::Application.routes.draw do
+  get "displays/tanks"
+
 resources :computers
   # The priority is based upon order of creation:
   # first created -> highest priority.
