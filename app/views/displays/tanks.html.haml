@@ -1,9 +1,10 @@
-local a=peripheral.wrap("top")
-a.clear()
--offset=10
--spacing=10
+bridge.clear()
+-spacing=2
+-height=20
+-width=100
+-x=5
+-y=5
+-#="drawHorizontalPower(5,5,100,20,.75,'peripheralName')"
 -@tanks.each_with_index do |tank, index|
-  ="a.addBox(5,#{spacing+index*offset},50,10,0,1)"
-  ="a.addLiquid(5,#{spacing+index*offset},#{(tank.settings["getTankInfo"]["1"]["amount"].to_f/tank.settings["getTankInfo"]["1"]["capacity"].to_f)*50},10,'#{tank.settings["getTankInfo"]["1"]["name"]}')"
-  ="a.addText(5,#{spacing+index*offset},'#{tank.settings["getTankInfo"]["1"]["name"]}',0)"
-
+  =showTank(x,y+(index*(height+spacing)),width,height,spacing,tank)
+  -#="drawHorizontalTank(x,#{spacing+index*height},#{width},#{height},'#{tank.settings["getTankInfo"]["1"]["name"]}',#{(tank.settings["getTankInfo"]["1"]["amount"].to_f/tank.settings["getTankInfo"]["1"]["capacity"].to_f)})"

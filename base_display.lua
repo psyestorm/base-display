@@ -4,7 +4,7 @@ local warningClearTime=10 --amount of time to keep the warning on the screen
 --GLOBALS
 local logger=nil --variable to hold the logger for errors
 local peripherals={} --variable to hold peripheral sides and names
-local bridge=nil --variable to hold bridge peripheral
+bridge=nil --variable to hold bridge peripheral
 local displayObjects={} --variable to hold objects displayed on the glasses
 local warning={} --variable to hold the current warning on the screen
 local computerInfo={} --holds computer info like UUID
@@ -33,6 +33,59 @@ function loadAPIs()
     os.loadAPI("uuid")
 end
 
+function drawHorizontalPower(x,y,width,height,percentFull,peripheralName)
+    local powerWidth=6
+    local powerSpacing=2
+    local color1=0xFA4B0A
+    local color2=0xF39100
+
+    if (height % 2 == 0) then
+        height=height+1 --even heights dont work work for centering
+    end
+    local fullWidth=width*percentFull
+    local powerBars=math.floor((fullWidth)/(powerWidth+powerSpacing))
+    local leftOver=fullWidth-(powerBars*(powerWidth+powerSpacing))
+    bridge.addBox(x,y,width,height,1,.5)
+    for i=0,powerBars-1 do
+        bridge.addGradientBox(x+((powerWidth+powerSpacing)*i)+2,y+2,powerWidth,height-3,color1,1,color2,1,2)
+    end
+    bridge.addGradientBox(x+((powerWidth+powerSpacing)*powerBars)+2,y+2,leftOver,height-3,color1,1,color2,1,2)
+    logger:debug("Last bar was "..leftOver.." wide and started at"..x+((powerWidth+powerSpacing)*powerBars)+2)
+    bridge.addBox(x,y,width,1,1,1)
+    bridge.addBox(x,y+height,width,1,1,1)
+    bridge.addBox(x,y,1,height,1,1)
+    bridge.addBox(x+width,y,1,height,1,1)
+    local textWidth=bridge.getStringWidth(peripheralName)
+    bridge.addText(x+((width-textWidth)/2),y+((height-8)/2),capitalizeFirst(peripheralName),0xFFFFFF)
+    --if iconName then
+        --addIconByPeripheralName(x+5,y+5,peripheralName)
+    --end
+end
+
+function drawHorizontalTank(x,y,width,height,fluidName,percentFull,peripheralName)
+    bridge.addBox(x,y,width,height,1,.5)
+    bridge.addLiquid(x,y,(width*percentFull),height,fluidName)
+    bridge.addBox(x,y,width,1,1,1)
+    bridge.addBox(x,y+height,width,1,1,1)
+    bridge.addBox(x,y,1,height,1,1)
+    bridge.addBox(x+width,y,1,height,1,1)
+    local textWidth=bridge.getStringWidth(fluidName)
+    bridge.addText(x+((width-textWidth)/2),y+((height-8)/2),capitalizeFirst(fluidName),0xFFFFFF)
+    if iconName then
+        addIconByPeripheralName(x+5,y+5,peripheralName)
+    end
+end
+
+function addIconByPeripheralName(x,y,name)
+    logger:debug("Adding icon for "..name.." at "..x..","..y)
+--  bridge.addIcon(x,y,itemIDs[name]["id"],itemIDs[name]["meta"])
+    bridge.addIcon(x,y,2005,3)
+end
+
+function capitalizeFirst(str)
+    return (str:gsub("^%l", string.upper))
+end
+
 function downloadItemIDs()
     fs.delete("bdItemIDs")
     downloadFile("bdItemIDs","UxJNRx8j")
@@ -45,7 +98,7 @@ function loadIDs()
 --        downloadFile("bdItemIDs","UxJNRx8j")--PUT PASTBIN HERE
 --    end
 
-    downloadItemIDs()
+    --downloadItemIDs()
     itemIDs=loadSettings("bdItemIDs")
 end
 
@@ -335,8 +388,12 @@ end
 function showDisplay(display)
     logger:debug("Showing display "..display)
     local response=http.get("http://localhost:3000/displays/"..display).readAll()
-    logger:debug("response: "..response)
-    loadstring(response)()
+    logger:debug("Response was: "..response)
+    f=loadstring(response)
+    if f then
+        setfenv(f, getfenv())
+        f()
+    end
 end
 
 function showWarning(message)
@@ -443,10 +500,19 @@ identifyPeripherals()
 initializeDescriptions()
 initializeRedstone()
 logger:debug("--------Initialization Complete------")
-sendData()
 
+--listHumanMethods("top")
+--sendData()
+if bridge then
+    bridge.clear()
+end
+--sendData()
 while true do
-    showDisplay("tanks")
+    sendData()
+    if bridge then
+        bridge.clear()
+        showDisplay("tanks")
+    end
     sleep(10)
 end
 --listHumanMethods("top")

@@ -1,5 +1,5 @@
 class DisplaysController < ApplicationController
   def tanks
-    @tanks=Peripheral.where("peripheral_type=?","cofh_thermalexpansion_tank")
+    @tanks=Peripheral.has_tanks
   end
 end
