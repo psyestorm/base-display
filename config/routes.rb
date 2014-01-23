@@ -1,5 +1,6 @@
 BaseDisplay::Application.routes.draw do
   get "displays/tanks"
+  get "displays/power"
 
 resources :computers
   # The priority is based upon order of creation:

@@ -8,7 +8,8 @@ module DisplaysHelper
     return_string
   end
 
-  def showPower(x,y,width,height,spacing,peripheral)
-
+  def showPower(x,y,width,height,peripheral)
+    power=peripheral.power
+    "drawHorizontalPower(#{x},#{y},#{width},#{height},#{power["percentFull"]},'#{peripheral.description}')"
   end
 end

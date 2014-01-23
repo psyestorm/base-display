@@ -4,6 +4,7 @@ class Peripheral < ActiveRecord::Base
   attr_accessible :description, :side, :peripheral_type
 
   scope :has_tanks, where("peripheral_type=?","cofh_thermalexpansion_tank")
+  scope :has_power, where("peripheral_type=?","cofh_thermalexpansion_energycell")
 
   def update_from_post_data(data)
     if data
@@ -18,6 +19,10 @@ class Peripheral < ActiveRecord::Base
   end
 
   def power
-    self.settings[""]
+    power={}
+    power["currentEnergy"]=self.settings["getEnergyStored"].to_f
+    power["maxEnergy"]=self.settings["getMaxEnergyStored"].to_f
+    power["percentFull"]=power["currentEnergy"]/power["maxEnergy"]
+    power
   end
 end

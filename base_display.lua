@@ -13,6 +13,7 @@ local lastPeripherals={} --holds old peripherals loaded from file
 local redstoneValues={} --holds the redstone signal data
 local itemIDs={} --holds universal itemIDs for peripherals
 local methodsHash={} --holds methodsHash data
+local todo={}
 
 --CONSTANTS
 local directions={"left","right","top","bottom","front","back"} --holds the directions
@@ -100,6 +101,16 @@ function loadIDs()
 
     --downloadItemIDs()
     itemIDs=loadSettings("bdItemIDs")
+end
+
+function InitializeTodo()
+    logger:debug("Loading Todos")
+    todo=loadSettings("bdTodo")
+    if todo==nil then
+        logger:warn("No todo information found - could be first run")
+        todo={}
+        saveSettings("bdTodo",todo)
+    end
 end
 
 function downloadFile(filename,pastebin)
@@ -414,6 +425,33 @@ function clearWarning()
     return
 end
 
+function showTodo()
+    logger:debug("showing todo")
+    for k,v in pairs(todo) do
+        print(k..") "..v)
+    end
+end
+
+function addTodo(item, priority)
+    if priority > #todo+1 then
+        priority=#todo+1
+        logger:debug("tried to add a priority that was too high.  Reseting to "..priority)
+    end
+    logger:debug("adding todo item "..priority..") "..item)
+    table.insert(todo, priority, item)
+    saveSettings("bdTodo",todo)
+end
+
+function finishTodo(priority)
+    if priority <= #todo then
+        logger:debug("deleting todo item "..priority..") "..todo[priority])
+        table.remove(todo, priority)
+        saveSettings("bdTodo",todo)
+    else
+        logger:warn("could not delete item with priority "..priority..".  The number is too high.  Doing nothing")
+    end
+end
+
 
 function loadSettings(filename)
     logger:debug("Loading gettings for "..filename)
@@ -499,6 +537,7 @@ initializeComputer()
 identifyPeripherals()
 initializeDescriptions()
 initializeRedstone()
+InitializeTodo()
 logger:debug("--------Initialization Complete------")
 
 --listHumanMethods("top")
@@ -506,15 +545,25 @@ logger:debug("--------Initialization Complete------")
 if bridge then
     bridge.clear()
 end
+
+showTodo()
+addTodo("testing",1)
+showTodo()
+addTodo("testing new top priority",1)
+showTodo()
+addTodo("testing missing priority",4)
+showTodo()
+finishTodo(5)
+showTodo()
 --sendData()
-while true do
-    sendData()
-    if bridge then
-        bridge.clear()
-        showDisplay("tanks")
-    end
-    sleep(10)
-end
+--while true do
+--    sendData()
+--    if bridge then
+--        bridge.clear()
+--        showDisplay("power")
+--    end
+--    sleep(10)
+--end
 --listHumanMethods("top")
 --toggleRedstone()
 --local computer=textutils.unserialize(remoteData.readLine())
