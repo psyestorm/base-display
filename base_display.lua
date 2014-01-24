@@ -13,7 +13,8 @@ local lastPeripherals={} --holds old peripherals loaded from file
 local redstoneValues={} --holds the redstone signal data
 local itemIDs={} --holds universal itemIDs for peripherals
 local methodsHash={} --holds methodsHash data
-local todo={}
+local todo={} --holds todo list
+local peripheralUUIDs={} --holds uuids of peripherals
 
 --CONSTANTS
 local directions={"left","right","top","bottom","front","back"} --holds the directions
@@ -58,10 +59,7 @@ function drawHorizontalPower(x,y,width,height,percentFull,peripheralName)
 
     bridge.addGradientBox(x+((powerWidth+powerSpacing)*powerBars),y,leftOver,height,color1,1,color2,1,2)
     logger:debug("Last bar was "..leftOver.." wide and started at"..x+((powerWidth+powerSpacing)*powerBars)+2)
-    bridge.addBox(x,y-1,width,1,1,1)
-    bridge.addBox(x,y+height,width,1,1,1)
-    bridge.addBox(x-1,y,1,height,1,1)
-    bridge.addBox(x+width,y,1,height,1,1)
+    drawBoxBorder(x,y,width,height)
     local textWidth=bridge.getStringWidth(peripheralName)
     bridge.addText(x+5,y+((height-9)/2)+1,capitalizeFirst(peripheralName),0xFFFFFF)
     if iconName then
@@ -72,10 +70,7 @@ end
 function drawHorizontalTank(x,y,width,height,fluidName,percentFull,peripheralName)
     bridge.addBox(x,y,width,height,1,.5)
     bridge.addLiquid(x,y,(width*percentFull),height,fluidName)
-    bridge.addBox(x,y-1,width,1,1,1)
-    bridge.addBox(x,y+height,width,1,1,1)
-    bridge.addBox(x-1,y,1,height,1,1)
-    bridge.addBox(x+width,y,1,height,1,1)
+    drawBoxBorder(x,y,width,height)
     local textWidth=bridge.getStringWidth(fluidName)
     bridge.addText(x+5,y+((height-9)/2)+1,capitalizeFirst(fluidName),0xFFFFFF)
     if iconName then
@@ -135,10 +130,14 @@ function pullEventCharacter(allowed)
     while validCharacter==false do
         event, character= os.pullEventRaw("char")
         if event=="char" then
-            if string.find(allowed,character)~=nil then
-                validCharacter=true
+            if allowed~=nil then
+                if string.find(allowed,character)~=nil then
+                    validCharacter=true
+                else
+                    centerPrint("Invalid Choice")
+                end
             else
-                centerPrint("Invalid Choice")
+                validCharacter=true
             end
         end
     end
@@ -228,9 +227,19 @@ function initializeComputer()
         logger:warn("No Computer Information Found - could be first run")
         computerInfo={}
         computerInfo["uuid"]=uuid.Generate()
+
         centerPrint("Welcome to Base Display")
-        centerPrint("Please give this computer a descriptive name.  This name will be used on the HUD to identify this computer.")
+        centerPrint("by Collin Murphy")
+        centerPrint("Press any key to continue...")
+        pullEventCharacter()
+        term.clear()
+        centerPrint("Please give this computer a descriptive name.  This name will be used on to identify this computer.")
         computerInfo["name"]=pullEventInput()
+        term.clear()
+        centerPrint("Please enter the shared secret for your computers.  Think of this like a password.")
+        centerPrint("All of your computer need to have the same shared secret, and it should be unique to you.")
+        centerPrint("If someone has the same secret as you, their peripherals may show up in your HUD")
+        computerInfo["sharedSecret"]=pullEventInput()
         saveSettings("bdComputerInfo",computerInfo)
     end
     if os.getComputerLabel()==nil then
@@ -243,12 +252,13 @@ end
 function sendData()
     logger:debug("Sending Data")
     data={}
-    local postData="computer_uuid="..computerInfo["uuid"]
+    local postData="computer_uuid="..computerInfo["uuid"].."&shared_secret="..computerInfo["sharedSecret"]
 
     for key, value in pairs(peripherals) do
         local p=getMethodsHash(key)
         p["peripheral_type"]=value
         p["description"]=descriptions[key]
+        p["uuid"]=peripheralUUIDs[key]
         logger:debug("about to call parsetable with "..textutils.serialize(p))
         postData=postData..parseTable(p,"&"..key)
         logger:debug("Post Data: "..postData)
@@ -364,6 +374,11 @@ function changePeripheralDescription(direction)
        logger:warn("No description information found - could be first run")
        descriptions={}
     end
+    peripheralUUIDs=loadSettings("bdPeripheralUUIDs")
+    if peripheralUUIDs==nil then
+       logger:warn("No UUID information found - could be first run")
+       peripheralUUIDs={}
+    end
     if peripherals[direction]~=nil then
         centerPrint("It looks like the "..peripherals[direction].." on the "..direction.." is new.  Please give a short description of it.")
         logger:info("New peripheral found "..peripherals[direction].." - "..direction)
@@ -376,16 +391,15 @@ function changePeripheralDescription(direction)
             logger:debug("Side didn't have a peripheral before")
         end
         descriptions[direction]=pullEventInput()
+        peripheralUUIDs[direction]=uuid.Generate()
     else
         logger:info("Peripheral was removed - removing description")
         descriptions[direction]=nil
+        peripheralUUIDs[direction]=nil
     end
     saveSettings("bdDescriptions",descriptions)
-    sendPeripheralInfoToServer()
-end
-
-function sendPeripheralInfoToServer()
-
+    saveSettings("bdPeripheralUUIDs",peripheralUUIDs)
+    sendData()
 end
 
 function printTable(t)
@@ -431,11 +445,72 @@ function clearWarning()
     return
 end
 
-function showTodo()
-    logger:debug("showing todo")
+function showTodo(x,y,width,itemCount)
+    local titleName="Todo List"
+    logger:debug("showing todo with x:"..x.." y:"..y.." width:"..width.." itemcount:"..itemCount)
+    local todoLines={}
     for k,v in pairs(todo) do
-        print(k..") "..v)
+        logger:debug("in for loop with k: "..tostring(k).." v: "..tostring(v).." itemcount: "..tostring(itemCount))
+        if k<=itemCount then
+            if bridge.getStringWidth(v) > width then
+                local maxLength=findMaxLength(width)
+                for i=1,math.ceil(string.len(v)/maxLength) do
+                    table.insert(todoLines,v:sub((maxLength*(i-1))+1,maxLength*i))
+                end
+            else
+                table.insert(todoLines,k..") "..v)
+            end
+        end
     end
+
+    local height=(16*#todoLines)
+    bridge.addBox(x,y,width,height,1,.5)
+    drawBoxBorder(x,y,width,height)
+    local titleWidth=bridge.getStringWidth(titleName)
+    local title=bridge.addText(x+(width-titleWidth)/2,y+3,titleName,0xFFFFFF)
+    title.setScale(1.3)
+    for k,v in pairs(todoLines) do
+        bridge.addText(x+3,y+(k*8)+15,v,0xFFFFFF)
+    end
+end
+
+function drawBoxBorder(x,y,width,height)
+    bridge.addBox(x,y-1,width,1,1,1)
+    bridge.addBox(x,y+height,width,1,1,1)
+    bridge.addBox(x-1,y,1,height,1,1)
+    bridge.addBox(x+width,y,1,height,1,1)
+end
+
+function showClock(x,y)
+    local time=os.time()
+    local hour=math.floor(time)
+    local minute=math.floor((time-hour)*60)
+    if minute < 10 then
+        minute="0"..minute
+    end
+    local amPm
+    if hour/12 > 1 then
+        amPm="PM"
+        hour=hour-12
+    else
+        amPm="AM"
+    end
+    local timeString=hour..":"..minute.." "..amPm
+    local width=bridge.getStringWidth(timeString)
+    local height=20
+    bridge.addBox(x,y,width,height,1,.5)
+    local timeObj=bridge.addText(x+5,y+5,timeString,0xFFFFFF)
+    timeObj.setScale(1)
+    drawBoxBorder(x,y,width,height)
+end
+
+function findMaxLength(width)
+    logger:debug("Finding max length for width "..width)
+    local testString="a"
+    while bridge.getStringWidth(testString) < width do
+        testString=testString.."a"
+    end
+    return string.len(testString)
 end
 
 function addTodo(item, priority)
@@ -552,15 +627,6 @@ if bridge then
     bridge.clear()
 end
 
-showTodo()
-addTodo("testing",1)
-showTodo()
-addTodo("testing new top priority",1)
-showTodo()
-addTodo("testing missing priority",4)
-showTodo()
-finishTodo(5)
-showTodo()
 --sendData()
 while true do
     identifyPeripherals()
@@ -570,6 +636,8 @@ while true do
         bridge.clear()
         showDisplay("power")
         showDisplay("tanks")
+        showTodo(150,50,200,5)
+        showClock(5,200)
     end
     sleep(5)
 end

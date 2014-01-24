@@ -1,7 +1,7 @@
 class Peripheral < ActiveRecord::Base
   has_settings
   belongs_to :computer
-  attr_accessible :description, :side, :peripheral_type
+  attr_accessible :description, :side, :peripheral_type, :uuid
 
   scope :has_tanks, where("peripheral_type=?","cofh_thermalexpansion_tank")
   scope :has_power, where("peripheral_type=?","cofh_thermalexpansion_energycell")
@@ -15,7 +15,9 @@ class Peripheral < ActiveRecord::Base
   end
 
   def tanks
+    tanks={}
     self.settings["getTankInfo"]
+
   end
 
   def power

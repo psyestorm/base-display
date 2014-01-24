@@ -24,6 +24,7 @@ ActiveRecord::Schema.define(:version => 20140121184024) do
   create_table "peripherals", :force => true do |t|
     t.string   "description"
     t.string   "peripheral_type"
+    t.string   "uuid"
     t.string   "side"
     t.integer  "computer_id"
     t.datetime "created_at",      :null => false

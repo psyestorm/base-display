@@ -3,6 +3,7 @@ class CreatePeripherals < ActiveRecord::Migration
     create_table :peripherals do |t|
       t.string :description
       t.string :peripheral_type
+      t.string :uuid
       t.string :side
       t.references :computer
 
