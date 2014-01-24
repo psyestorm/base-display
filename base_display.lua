@@ -35,43 +35,49 @@ function loadAPIs()
 end
 
 function drawHorizontalPower(x,y,width,height,percentFull,peripheralName)
-    local powerWidth=6
-    local powerSpacing=2
+    local powerSpacing=1
+    local powerWidth=width/20-powerSpacing
     local color1=0xFA4B0A
     local color2=0xF39100
-
-    if (height % 2 == 0) then
-        height=height+1 --even heights dont work work for centering
-    end
     local fullWidth=width*percentFull
     local powerBars=math.floor((fullWidth)/(powerWidth+powerSpacing))
     local leftOver=fullWidth-(powerBars*(powerWidth+powerSpacing))
+    local addExtra=0
+
     bridge.addBox(x,y,width,height,1,.5)
     for i=0,powerBars-1 do
-        bridge.addGradientBox(x+((powerWidth+powerSpacing)*i)+2,y+2,powerWidth,height-3,color1,1,color2,1,2)
+        if percentFull==1 and i==powerBars-1 then  --this is some crappy code to get rid of the last space at 100% full
+            addExtra=1
+        else
+            addExtra=0
+        end
+        bridge.addGradientBox(x+((powerWidth+powerSpacing)*i),y,powerWidth+addExtra,height,color1,1,color2,1,2)
     end
-    bridge.addGradientBox(x+((powerWidth+powerSpacing)*powerBars)+2,y+2,leftOver,height-3,color1,1,color2,1,2)
+
+
+
+    bridge.addGradientBox(x+((powerWidth+powerSpacing)*powerBars),y,leftOver,height,color1,1,color2,1,2)
     logger:debug("Last bar was "..leftOver.." wide and started at"..x+((powerWidth+powerSpacing)*powerBars)+2)
-    bridge.addBox(x,y,width,1,1,1)
+    bridge.addBox(x,y-1,width,1,1,1)
     bridge.addBox(x,y+height,width,1,1,1)
-    bridge.addBox(x,y,1,height,1,1)
+    bridge.addBox(x-1,y,1,height,1,1)
     bridge.addBox(x+width,y,1,height,1,1)
     local textWidth=bridge.getStringWidth(peripheralName)
-    bridge.addText(x+((width-textWidth)/2),y+((height-8)/2),capitalizeFirst(peripheralName),0xFFFFFF)
-    --if iconName then
-        --addIconByPeripheralName(x+5,y+5,peripheralName)
-    --end
+    bridge.addText(x+5,y+((height-9)/2)+1,capitalizeFirst(peripheralName),0xFFFFFF)
+    if iconName then
+        addIconByPeripheralName(x+5,y+5,peripheralName)
+    end
 end
 
 function drawHorizontalTank(x,y,width,height,fluidName,percentFull,peripheralName)
     bridge.addBox(x,y,width,height,1,.5)
     bridge.addLiquid(x,y,(width*percentFull),height,fluidName)
-    bridge.addBox(x,y,width,1,1,1)
+    bridge.addBox(x,y-1,width,1,1,1)
     bridge.addBox(x,y+height,width,1,1,1)
-    bridge.addBox(x,y,1,height,1,1)
+    bridge.addBox(x-1,y,1,height,1,1)
     bridge.addBox(x+width,y,1,height,1,1)
     local textWidth=bridge.getStringWidth(fluidName)
-    bridge.addText(x+((width-textWidth)/2),y+((height-8)/2),capitalizeFirst(fluidName),0xFFFFFF)
+    bridge.addText(x+5,y+((height-9)/2)+1,capitalizeFirst(fluidName),0xFFFFFF)
     if iconName then
         addIconByPeripheralName(x+5,y+5,peripheralName)
     end
@@ -556,14 +562,17 @@ showTodo()
 finishTodo(5)
 showTodo()
 --sendData()
---while true do
---    sendData()
---    if bridge then
---        bridge.clear()
---        showDisplay("power")
---    end
---    sleep(10)
---end
+while true do
+    identifyPeripherals()
+    sendData()
+    sleep(1)
+    if bridge then
+        bridge.clear()
+        showDisplay("power")
+        showDisplay("tanks")
+    end
+    sleep(5)
+end
 --listHumanMethods("top")
 --toggleRedstone()
 --local computer=textutils.unserialize(remoteData.readLine())
